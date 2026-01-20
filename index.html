@@ -97,7 +97,6 @@
                 log("正在執行影片合併與轉檔 (這可能需要幾分鐘)...");
                 
                 // 說明：這裡使用 filter_complex 將三個影片強制縮放為 1920x1080 避免解析度不同導致錯誤
-                // [0:v] 是 intro, [1:v] 是 input, [2:v] 是 outro
                 await ffmpeg.run(
                     '-i', 'intro.mp4',
                     '-i', 'input.mp4',
@@ -115,13 +114,13 @@
                 const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
                 const videoUrl = URL.createObjectURL(videoBlob);
                 
-                // 處理檔名 (如果使用者沒打 .mp4 自動補上)
+                // 處理檔名
                 let saveName = filenameInput.value.trim() || 'merged_video.mp4';
                 if (!saveName.toLowerCase().endsWith('.mp4')) {
                     saveName += '.mp4';
                 }
 
-                // 建立下載連結並自動點擊
+                // 下載
                 const a = document.createElement('a');
                 a.href = videoUrl;
                 a.download = saveName;
@@ -129,14 +128,12 @@
                 a.click();
                 
                 log(`已下載檔案：${saveName}`);
-                
-                // 清理
                 document.body.removeChild(a);
 
             } catch (error) {
                 console.error(error);
                 log("❌發生錯誤：" + error.message);
-                alert("合成失敗，請檢查您的影片格式，或開啟 F12 查看詳細錯誤。");
+                alert("合成失敗，請檢查您的影片格式 (確保都有聲音軌道)。");
             }
 
             // 5. 恢復按鈕
