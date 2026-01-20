@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>衛星軌道影片合成器</title>
+    <title>衛星軌道影片合成器 (無聲版)</title>
     <script src="coi-serviceworker.js"></script>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <style>
@@ -15,17 +15,22 @@
         button { margin-top: 20px; padding: 12px 24px; font-size: 18px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; transition: background 0.3s; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         button:hover:not(:disabled) { background-color: #0056b3; }
+        
+        /* 進度條樣式 */
+        #progress-container { width: 100%; background-color: #ddd; border-radius: 5px; margin-top: 15px; display: none; }
+        #progress-bar { width: 0%; height: 20px; background-color: #28a745; border-radius: 5px; text-align: center; line-height: 20px; color: white; font-size: 12px; transition: width 0.2s; }
+        
         #log { margin-top: 20px; font-family: monospace; color: #555; background: #eee; padding: 10px; border-radius: 5px; text-align: left; max-height: 200px; overflow-y: auto; font-size: 12px; }
         .status-ok { color: green; font-weight: bold; }
         .status-err { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>🛰️ 衛星軌道影片合成器</h1>
+    <h1>🛰️ 衛星軌道影片合成器 (無聲版)</h1>
     <p style="text-align:center;">系統狀態：<span id="system-status">正在載入引擎...</span></p>
 
     <div class="container">
-        <h3>1. 上傳您的衛星影片</h3>
+        <h3>1. 上傳您的衛星影片 (無聲)</h3>
         <input type="file" id="upload-video" accept="video/mp4,video/mov">
         
         <br><br>
@@ -37,26 +42,39 @@
         
         <button id="start-btn" disabled>🚀 開始合成影片</button>
         
+        <div id="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+        
         <div id="log">等待操作...</div>
     </div>
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
+        const ffmpeg = createFFmpeg({ log: false }); // 關閉詳細 log 以免洗版，改用我們自己的進度條
         
         const statusSpan = document.getElementById('system-status');
         const startBtn = document.getElementById('start-btn');
         const logDiv = document.getElementById('log');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
 
-        // 顯示日誌的輔助函式
         function log(message) {
             logDiv.innerHTML += `<div>> ${message}</div>`;
             logDiv.scrollTop = logDiv.scrollHeight;
         }
 
-        // 初始化 FFmpeg
         (async () => {
             try {
+                // 設定進度監聽
+                ffmpeg.setProgress(({ ratio }) => {
+                    const percent = (ratio * 100).toFixed(1);
+                    if(percent >= 0 && percent <= 100) {
+                        progressBar.style.width = `${percent}%`;
+                        progressBar.innerText = `${percent}%`;
+                    }
+                });
+
                 await ffmpeg.load();
                 statusSpan.innerHTML = "✅ 引擎準備就緒 (System Ready)";
                 statusSpan.className = "status-ok";
@@ -78,49 +96,55 @@
                 return;
             }
 
-            // 1. 鎖定按鈕避免重複點擊
             startBtn.disabled = true;
-            startBtn.innerText = "⏳ 處理中，請稍候...";
+            startBtn.innerText = "⏳ 處理中...";
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
             log("--- 開始處理任務 ---");
 
             try {
-                // 2. 載入檔案到虛擬記憶體
-                log("正在讀取前導與結尾影片...");
-                // 從 assets 資料夾讀取 intro 和 outro
-                ffmpeg.FS('writeFile', 'intro.mp4', await fetchFile('assets/intro.mp4'));
-                ffmpeg.FS('writeFile', 'outro.mp4', await fetchFile('assets/outro.mp4'));
-                
-                log("正在讀取您上傳的影片...");
-                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(fileInput.files[0]));
+                // 1. 讀取檔案
+                log("正在從本機讀取您的影片 (Loading)...");
+                // 這一步是將檔案讀入記憶體
+                const userFile = fileInput.files[0];
+                await ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(userFile));
+                log(`✅ 已讀取: ${userFile.name}`);
 
-                // 3. 執行合成指令
-                log("正在執行影片合併與轉檔 (這可能需要幾分鐘)...");
+                log("正在從 GitHub 抓取前導與結尾影片...");
+                // 這裡最容易出錯，我們加入錯誤捕捉
+                try {
+                    ffmpeg.FS('writeFile', 'intro.mp4', await fetchFile('assets/intro.mp4'));
+                    ffmpeg.FS('writeFile', 'outro.mp4', await fetchFile('assets/outro.mp4'));
+                } catch (e) {
+                    throw new Error("找不到 assets/intro.mp4 或 assets/outro.mp4，請檢查 GitHub 資料夾與檔名是否正確！");
+                }
+
+                // 2. 執行合成 (無聲模式)
+                log("正在運算中... (請勿關閉視窗)");
                 
-                // 說明：這裡使用 filter_complex 將三個影片強制縮放為 1920x1080 避免解析度不同導致錯誤
+                // 關鍵修改：a=0 代表不處理聲音，避免無聲影片報錯
                 await ffmpeg.run(
                     '-i', 'intro.mp4',
                     '-i', 'input.mp4',
                     '-i', 'outro.mp4',
                     '-filter_complex', 
-                    '[0:v]scale=1920:1080[v0];[1:v]scale=1920:1080[v1];[2:v]scale=1920:1080[v2];[v0][0:a][v1][1:a][v2][2:a]concat=n=3:v=1:a=1[v][a]',
-                    '-map', '[v]', '-map', '[a]',
+                    '[0:v]scale=1920:1080[v0];[1:v]scale=1920:1080[v1];[2:v]scale=1920:1080[v2];[v0][v1][v2]concat=n=3:v=1:a=0[v]',
+                    '-map', '[v]',
                     'output.mp4'
                 );
 
                 log("✅ 合成完成！正在準備下載...");
+                progressBar.style.width = '100%';
+                progressBar.innerText = '完成!';
 
-                // 4. 讀取結果並觸發下載
+                // 3. 下載
                 const data = ffmpeg.FS('readFile', 'output.mp4');
                 const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
                 const videoUrl = URL.createObjectURL(videoBlob);
                 
-                // 處理檔名
                 let saveName = filenameInput.value.trim() || 'merged_video.mp4';
-                if (!saveName.toLowerCase().endsWith('.mp4')) {
-                    saveName += '.mp4';
-                }
+                if (!saveName.toLowerCase().endsWith('.mp4')) { saveName += '.mp4'; }
 
-                // 下載
                 const a = document.createElement('a');
                 a.href = videoUrl;
                 a.download = saveName;
@@ -133,10 +157,9 @@
             } catch (error) {
                 console.error(error);
                 log("❌發生錯誤：" + error.message);
-                alert("合成失敗，請檢查您的影片格式 (確保都有聲音軌道)。");
+                alert("錯誤：" + error.message);
             }
 
-            // 5. 恢復按鈕
             startBtn.disabled = false;
             startBtn.innerText = "🚀 開始合成影片";
         });
