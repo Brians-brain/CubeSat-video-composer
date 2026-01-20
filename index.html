@@ -3,53 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SATORO Shorts 合成器 (V7 最終版)</title>
+    <title>SATORO Shorts 合成器 (V8 兩段式安全版)</title>
     <script src="coi-serviceworker.js"></script>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #1a1a1a; color: #e0e0e0; }
         h1 { text-align: center; color: #ffffff; }
         .container { background: #2d2d2d; border-radius: 10px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; margin-top: 20px; }
-        input[type="text"] { padding: 10px; width: 60%; font-size: 16px; border: 1px solid #555; border-radius: 5px; margin-top: 5px; background: #404040; color: white; }
-        input[type="file"] { margin-top: 10px; color: #bbb; }
         
-        button { margin-top: 20px; padding: 12px 24px; font-size: 18px; cursor: pointer; background-color: #E1306C; color: white; border: none; border-radius: 25px; transition: transform 0.2s; font-weight: bold; }
-        button:disabled { background-color: #555; cursor: not-allowed; }
+        /* 檔案選擇區的美化 */
+        .file-upload-wrapper { border: 2px dashed #555; padding: 20px; border-radius: 10px; margin-top: 10px; transition: border 0.3s; }
+        .file-upload-wrapper:hover { border-color: #E1306C; }
+        input[type="file"] { display: none; } /* 隱藏醜醜的原生按鈕 */
+        .custom-file-upload { display: inline-block; padding: 10px 20px; cursor: pointer; background: #444; color: white; border-radius: 5px; border: 1px solid #666; }
+        #file-name-display { margin-top: 10px; color: #4caf50; font-weight: bold; min-height: 20px; }
+
+        input[type="text"] { padding: 10px; width: 70%; font-size: 16px; border: 1px solid #555; border-radius: 5px; margin-top: 5px; background: #404040; color: white; text-align: center; }
+        
+        button { margin-top: 25px; padding: 15px 30px; font-size: 20px; cursor: pointer; background-color: #E1306C; color: white; border: none; border-radius: 50px; transition: transform 0.2s; font-weight: bold; box-shadow: 0 4px 10px rgba(225, 48, 108, 0.3); }
+        button:disabled { background-color: #555; cursor: not-allowed; box-shadow: none; }
         button:hover:not(:disabled) { transform: scale(1.05); background-color: #C13584; }
         
-        .progress-wrapper { width: 100%; background-color: #404040; border-radius: 10px; margin-top: 15px; display: none; overflow: hidden; }
-        #read-bar { width: 0%; height: 20px; background-color: #00bcd4; text-align: center; line-height: 20px; color: white; font-size: 12px; transition: width 0.2s; }
-        #convert-bar { width: 0%; height: 20px; background-color: #4caf50; text-align: center; line-height: 20px; color: white; font-size: 12px; transition: width 0.2s; }
+        /* 進度條 */
+        .progress-wrapper { width: 100%; background-color: #404040; border-radius: 10px; margin-top: 20px; display: none; overflow: hidden; height: 25px; }
+        #progress-bar { width: 0%; height: 100%; background-color: #E1306C; text-align: center; line-height: 25px; color: white; font-size: 14px; transition: width 0.3s; font-weight: bold; }
         
-        /* 日誌區：開放顯示所有細節以便除錯 */
-        #log { margin-top: 20px; font-family: monospace; color: #ccc; background: #000; padding: 10px; border-radius: 5px; text-align: left; max-height: 300px; overflow-y: auto; font-size: 12px; border: 1px solid #444; }
-        .status-ok { color: #4caf50; font-weight: bold; }
-        .status-err { color: #ff5252; font-weight: bold; }
+        #log { margin-top: 20px; font-family: monospace; color: #ccc; background: #000; padding: 15px; border-radius: 5px; text-align: left; max-height: 250px; overflow-y: auto; font-size: 13px; border: 1px solid #444; }
     </style>
 </head>
 <body>
-    <h1>📱 SATORO Shorts 合成器 (1080x1350)</h1>
+    <h1>📱 SATORO Shorts 合成器 (V8)</h1>
     <p style="text-align:center;">系統狀態：<span id="system-status">正在載入引擎...</span></p>
 
     <div class="container">
-        <h3>1. 上傳您的衛星影片 (直/橫皆可)</h3>
-        <input type="file" id="upload-video" accept="video/mp4,video/mov">
+        <h3>1. 選擇您的衛星影片</h3>
+        <div class="file-upload-wrapper">
+            <label for="upload-video" class="custom-file-upload">📂 點擊選擇影片</label>
+            <input type="file" id="upload-video" accept="video/mp4,video/mov">
+            <div id="file-name-display">尚未選擇檔案</div>
+        </div>
         
-        <br><br>
+        <br>
         
         <h3>2. 設定輸出檔名</h3>
-        <input type="text" id="filename" value="SATORO_Mission.mp4" placeholder="例如：SATORO_Mission.mp4">
+        <input type="text" id="filename" value="SATORO_Mission.mp4">
         
-        <br><br>
+        <br>
         
-        <button id="start-btn" disabled>🎬 開始合成 Shorts</button>
+        <button id="start-btn" disabled>🚀 開始合成 Shorts</button>
         
-        <div class="progress-wrapper" id="read-progress-container">
-            <div id="read-bar">讀取中 0%</div>
-        </div>
-
-        <div class="progress-wrapper" id="convert-progress-container">
-            <div id="convert-bar">運算中 0%</div>
+        <div class="progress-wrapper" id="progress-container">
+            <div id="progress-bar">準備中...</div>
         </div>
         
         <div id="log">等待操作...</div>
@@ -57,7 +61,6 @@
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
-        // 開啟完整 Log 以便抓錯
         const ffmpeg = createFFmpeg({ log: true });
         
         // ★★★ 請確認您的 GitHub Repo 網址正確 ★★★
@@ -66,66 +69,54 @@
         const statusSpan = document.getElementById('system-status');
         const startBtn = document.getElementById('start-btn');
         const logDiv = document.getElementById('log');
-        const readContainer = document.getElementById('read-progress-container');
-        const readBar = document.getElementById('read-bar');
-        const convertContainer = document.getElementById('convert-progress-container');
-        const convertBar = document.getElementById('convert-bar');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const fileInput = document.getElementById('upload-video');
+        const fileNameDisplay = document.getElementById('file-name-display');
+
+        // 顯示檔案名稱，解決「不知道有沒有選到」的焦慮
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.innerText = "✅ 已準備就緒: " + fileInput.files[0].name;
+                fileNameDisplay.style.color = "#4caf50";
+            } else {
+                fileNameDisplay.innerText = "尚未選擇檔案";
+                fileNameDisplay.style.color = "#ccc";
+            }
+        });
 
         function log(message) {
             if(typeof message === 'string') {
                 logDiv.innerHTML += `<div>> ${message}</div>`;
             } else {
-                logDiv.innerHTML += `<div style="color:#ff5252">ERROR OBJ: ${JSON.stringify(message)}</div>`;
+                logDiv.innerHTML += `<div style="color:#ff5252">ERR: ${JSON.stringify(message)}</div>`;
             }
             logDiv.scrollTop = logDiv.scrollHeight;
         }
-
-        // 這次我們不隱藏任何訊息，讓所有 FFmpeg 輸出都顯示出來，方便抓出「為什麼沒存檔」
-        ffmpeg.setLogger(({ type, message }) => {
-            log(`[FFmpeg] ${message}`);
-        });
 
         (async () => {
             try {
                 ffmpeg.setProgress(({ ratio }) => {
                     const percent = (ratio * 100).toFixed(1);
                     if(percent >= 0 && percent <= 100) {
-                        convertBar.style.width = `${percent}%`;
-                        convertBar.innerText = `合成運算中: ${percent}%`;
+                        progressBar.style.width = `${percent}%`;
+                        progressBar.innerText = `運算中: ${percent}%`;
                     }
                 });
 
                 await ffmpeg.load();
                 statusSpan.innerHTML = "✅ 引擎準備就緒";
-                statusSpan.className = "status-ok";
+                statusSpan.style.color = "#4caf50";
                 startBtn.disabled = false;
-                log("系統就緒，準備製作 Shorts。");
+                log("系統就緒，請選擇影片後按下開始。");
             } catch (err) {
-                statusSpan.innerHTML = "❌ 載入失敗";
-                statusSpan.className = "status-err";
+                statusSpan.innerHTML = "❌ 載入失敗 (請檢查 GitHub Pages 環境)";
+                statusSpan.style.color = "#ff5252";
                 log("錯誤：" + err.message);
             }
         })();
 
-        function readFileWithProgress(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                readContainer.style.display = 'block';
-                reader.onprogress = (data) => {
-                    if (data.lengthComputable) {                                            
-                        const progress = parseInt( ((data.loaded / data.total) * 100), 10 );
-                        readBar.style.width = `${progress}%`;
-                        readBar.innerText = `讀取檔案中: ${progress}%`;
-                    }
-                }
-                reader.onload = () => resolve(new Uint8Array(reader.result));
-                reader.onerror = () => reject(reader.error);
-                reader.readAsArrayBuffer(file);
-            });
-        }
-
         startBtn.addEventListener('click', async () => {
-            const fileInput = document.getElementById('upload-video');
             const filenameInput = document.getElementById('filename');
             
             if (fileInput.files.length === 0) {
@@ -134,52 +125,61 @@
             }
 
             startBtn.disabled = true;
-            startBtn.innerText = "⏳ 正在製作 (請稍候)...";
-            convertContainer.style.display = 'block';
-            convertBar.style.width = '0%';
-            logDiv.innerHTML = "<div>--- 開始新任務 (V7 強制標準化) ---</div>";
+            startBtn.innerText = "⏳ 處理中 (兩階段模式)...";
+            progressContainer.style.display = 'block';
+            logDiv.innerHTML = "<div>--- 開始新任務 (V8) ---</div>";
 
             try {
                 // 1. 讀取本機檔案
-                log(`正在讀取: ${fileInput.files[0].name}`);
-                const userFileBuffer = await readFileWithProgress(fileInput.files[0]);
+                log(`Step 0: 讀取本機影片...`);
+                const userFileBuffer = await fetchFile(fileInput.files[0]);
                 ffmpeg.FS('writeFile', 'input.mp4', userFileBuffer);
                 
-                // 2. 抓取遠端素材
-                log("正在下載前導與結尾影片...");
+                // 2. 下載素材
                 const timeStamp = new Date().getTime(); 
                 try {
                     ffmpeg.FS('writeFile', 'intro.mp4', await fetchFile(BASE_ASSETS_URL + 'intro.mp4?t=' + timeStamp));
                     ffmpeg.FS('writeFile', 'outro.mp4', await fetchFile(BASE_ASSETS_URL + 'outro.mp4?t=' + timeStamp));
                 } catch(e) {
-                    throw new Error("下載失敗！請確認 assets/intro.mp4 是否存在。");
+                    throw new Error("無法下載素材，請確認網路或 GitHub 檔案。");
                 }
 
-                // 3. 執行合成
-                log("🚀 開始 FFmpeg 運算...");
-                log("注意：這一步會將所有影片統一為 30fps，避免接合失敗。");
+                // ★★★ V8 核心：第一階段 - 淨化使用者影片 ★★★
+                log("Step 1/2: 正在標準化您的衛星影片 (縮放+補黑邊)...");
+                progressBar.innerText = "Step 1: 格式化中...";
                 
-                // V7 核心修改：加入 fps=30 和 format=yuv420p 來強制統一所有素材
-                const commonFilter = "scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p";
-                
+                // 先把使用者的影片單獨處理成完美的 1080x1350
+                // 這樣可以避免 concat 失敗
+                await ffmpeg.run(
+                    '-i', 'input.mp4',
+                    '-vf', 'scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(1080-iw)/2:(1350-ih)/2,setsar=1,fps=30,format=yuv420p',
+                    '-c:v', 'libx264',
+                    '-preset', 'ultrafast',
+                    'middle.mp4' // 輸出成暫存檔
+                );
+                log("✅ 第一階段完成，衛星影片已標準化。");
+
+                // ★★★ V8 核心：第二階段 - 拼接 ★★★
+                log("Step 2/2: 正在合併前導與結尾...");
+                progressBar.innerText = "Step 2: 合併中...";
+
+                // 這次合併非常安全，因為 input 已經是標準格式了
                 await ffmpeg.run(
                     '-i', 'intro.mp4',
-                    '-i', 'input.mp4',
+                    '-i', 'middle.mp4',
                     '-i', 'outro.mp4',
-                    '-filter_complex', 
-                    `[0:v]${commonFilter}[v0];[1:v]${commonFilter}[v1];[2:v]${commonFilter}[v2];[v0][v1][v2]concat=n=3:v=1:a=0[v]`,
+                    '-filter_complex', '[0:v][1:v][2:v]concat=n=3:v=1:a=0[v]',
                     '-map', '[v]',
-                    '-c:v', 'libx264',
-                    '-preset', 'ultrafast', // 犧牲一點畫質換取速度，避免瀏覽器當機
+                    '-c:v', 'libx264', // 為了保險起見再次編碼，確保相容性
+                    '-preset', 'ultrafast',
                     'output.mp4'
                 );
 
-                log("✅ Shorts 合成完成！正在打包...");
-                convertBar.style.width = '100%';
-                convertBar.innerText = '完成！';
+                log("✅ 全部完成！正在打包下載...");
+                progressBar.style.width = '100%';
+                progressBar.innerText = '完成！';
 
                 // 4. 下載
-                // 這裡加入檢查，確認 output.mp4 是否真的存在
                 try {
                     const data = ffmpeg.FS('readFile', 'output.mp4');
                     const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
@@ -195,17 +195,17 @@
                     a.click();
                     document.body.removeChild(a);
                 } catch (readErr) {
-                    throw new Error("無法讀取輸出檔案，可能是 FFmpeg 在運算過程中默默失敗了。請查看上方 [FFmpeg] 日誌是否有 Error 字樣。");
+                    throw new Error("無法讀取檔案。請確認 Step 2 是否有紅色錯誤訊息。");
                 }
 
             } catch (error) {
                 console.error(error);
                 log("❌ 發生錯誤：" + error.message);
-                alert("合成失敗！請查看下方黑色框框中的紅字錯誤訊息。");
+                alert("合成失敗，請查看下方日誌。");
             }
 
             startBtn.disabled = false;
-            startBtn.innerText = "🎬 開始合成 Shorts";
+            startBtn.innerText = "🚀 開始合成 Shorts";
         });
     </script>
 </body>
