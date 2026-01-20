@@ -3,46 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>衛星軌道影片合成器 (Pro版)</title>
+    <title>衛星影片合成器 (Shorts直式版)</title>
     <script src="coi-serviceworker.js"></script>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #f9f9f9; }
-        h1 { text-align: center; color: #333; }
-        .container { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; margin-top: 20px; }
-        input[type="text"] { padding: 10px; width: 60%; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; margin-top: 5px; }
-        input[type="file"] { margin-top: 10px; }
-        button { margin-top: 20px; padding: 12px 24px; font-size: 18px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; transition: background 0.3s; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        button:hover:not(:disabled) { background-color: #0056b3; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #222; color: white; }
+        h1 { text-align: center; color: #fff; }
+        .container { background: #333; border-radius: 10px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; margin-top: 20px; }
+        input[type="text"] { padding: 10px; width: 60%; font-size: 16px; border: 1px solid #555; border-radius: 5px; margin-top: 5px; background: #444; color: white; }
+        input[type="file"] { margin-top: 10px; color: #ddd; }
+        
+        button { margin-top: 20px; padding: 12px 24px; font-size: 18px; cursor: pointer; background-color: #ff0050; color: white; border: none; border-radius: 25px; transition: transform 0.2s; font-weight: bold; }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+        button:hover:not(:disabled) { transform: scale(1.05); background-color: #ff3370; }
         
         /* 進度條容器 */
-        .progress-wrapper { width: 100%; background-color: #eee; border-radius: 10px; margin-top: 15px; display: none; overflow: hidden; }
-        /* 兩個進度條：一個是讀取(藍)，一個是運算(綠) */
-        #read-bar { width: 0%; height: 20px; background-color: #17a2b8; text-align: center; line-height: 20px; color: white; font-size: 12px; transition: width 0.2s; }
-        #convert-bar { width: 0%; height: 20px; background-color: #28a745; text-align: center; line-height: 20px; color: white; font-size: 12px; transition: width 0.2s; }
+        .progress-wrapper { width: 100%; background-color: #555; border-radius: 10px; margin-top: 15px; display: none; overflow: hidden; }
+        #read-bar { width: 0%; height: 20px; background-color: #00bcd4; text-align: center; line-height: 20px; color: white; font-size: 12px; transition: width 0.2s; }
+        #convert-bar { width: 0%; height: 20px; background-color: #4caf50; text-align: center; line-height: 20px; color: white; font-size: 12px; transition: width 0.2s; }
         
-        #log { margin-top: 20px; font-family: monospace; color: #555; background: #eee; padding: 10px; border-radius: 5px; text-align: left; max-height: 200px; overflow-y: auto; font-size: 12px; }
-        .status-ok { color: green; font-weight: bold; }
-        .status-err { color: red; font-weight: bold; }
+        #log { margin-top: 20px; font-family: monospace; color: #bbb; background: #111; padding: 10px; border-radius: 5px; text-align: left; max-height: 300px; overflow-y: auto; font-size: 12px; border: 1px solid #444; }
+        .status-ok { color: #4caf50; font-weight: bold; }
+        .status-err { color: #ff5252; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>🛰️ 衛星軌道影片合成器 (Pro版)</h1>
+    <h1>📱 YouTube Shorts 合成器 (1080x1350)</h1>
     <p style="text-align:center;">系統狀態：<span id="system-status">正在載入引擎...</span></p>
 
     <div class="container">
-        <h3>1. 上傳您的衛星影片</h3>
+        <h3>1. 上傳您的衛星影片 (橫式可)</h3>
         <input type="file" id="upload-video" accept="video/mp4,video/mov">
         
         <br><br>
         
         <h3>2. 設定輸出檔名</h3>
-        <input type="text" id="filename" value="merged_video.mp4" placeholder="例如：Mission_Alpha.mp4">
+        <input type="text" id="filename" value="Shorts_Video.mp4" placeholder="例如：Shorts_Mission.mp4">
         
         <br><br>
         
-        <button id="start-btn" disabled>🚀 開始合成影片</button>
+        <button id="start-btn" disabled>🎬 開始合成 Shorts</button>
         
         <div class="progress-wrapper" id="read-progress-container">
             <div id="read-bar">讀取中 0%</div>
@@ -57,25 +57,34 @@
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
+        const ffmpeg = createFFmpeg({ log: true });
         
-        // ★★★ 設定絕對路徑基底 (請確保您的 repo 名稱正確) ★★★
+        // ★★★ 請確認您的 GitHub Repo 網址正確 ★★★
         const BASE_ASSETS_URL = 'https://brians-brain.github.io/CubeSat-video-composer/assets/';
 
         const statusSpan = document.getElementById('system-status');
         const startBtn = document.getElementById('start-btn');
         const logDiv = document.getElementById('log');
-        
-        // 進度條元件
         const readContainer = document.getElementById('read-progress-container');
         const readBar = document.getElementById('read-bar');
         const convertContainer = document.getElementById('convert-progress-container');
         const convertBar = document.getElementById('convert-bar');
 
         function log(message) {
-            logDiv.innerHTML += `<div>> ${message}</div>`;
+            if(typeof message === 'string') {
+                logDiv.innerHTML += `<div>> ${message}</div>`;
+            } else {
+                logDiv.innerHTML += `<div style="color:#ff5252">ERR: ${JSON.stringify(message)}</div>`;
+            }
             logDiv.scrollTop = logDiv.scrollHeight;
         }
+
+        ffmpeg.setLogger(({ type, message }) => {
+            // 過濾掉太多無用的 FFmpeg 資訊，只留關鍵
+            if(message.includes('Error') || message.includes('frame=')) {
+                log(`[FFmpeg] ${message}`);
+            }
+        });
 
         (async () => {
             try {
@@ -88,23 +97,21 @@
                 });
 
                 await ffmpeg.load();
-                statusSpan.innerHTML = "✅ 引擎準備就緒 (System Ready)";
+                statusSpan.innerHTML = "✅ 引擎準備就緒";
                 statusSpan.className = "status-ok";
                 startBtn.disabled = false;
-                log("系統就緒，請上傳影片。");
+                log("系統就緒，準備製作 Shorts。");
             } catch (err) {
-                statusSpan.innerHTML = "❌ 載入失敗 (GitHub Pages 權限錯誤)";
+                statusSpan.innerHTML = "❌ 載入失敗";
                 statusSpan.className = "status-err";
                 log("錯誤：" + err.message);
             }
         })();
 
-        // 輔助函式：用 FileReader 讀取檔案並顯示進度
         function readFileWithProgress(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                readContainer.style.display = 'block'; // 顯示讀取條
-                
+                readContainer.style.display = 'block';
                 reader.onprogress = (data) => {
                     if (data.lengthComputable) {                                            
                         const progress = parseInt( ((data.loaded / data.total) * 100), 10 );
@@ -112,10 +119,8 @@
                         readBar.innerText = `讀取檔案中: ${progress}%`;
                     }
                 }
-                
                 reader.onload = () => resolve(new Uint8Array(reader.result));
                 reader.onerror = () => reject(reader.error);
-                
                 reader.readAsArrayBuffer(file);
             });
         }
@@ -130,42 +135,49 @@
             }
 
             startBtn.disabled = true;
-            startBtn.innerText = "⏳ 處理中...";
+            startBtn.innerText = "⏳ 正在製作 Shorts...";
             convertContainer.style.display = 'block';
             convertBar.style.width = '0%';
-            log("--- 開始處理任務 ---");
+            logDiv.innerHTML = "<div>--- 開始新任務 (直式模式) ---</div>";
 
             try {
-                // 1. 讀取本機檔案 (顯示藍色進度條)
-                log(`正在讀取您的影片: ${fileInput.files[0].name}...`);
+                // 1. 讀取本機檔案
+                log(`正在讀取: ${fileInput.files[0].name}`);
                 const userFileBuffer = await readFileWithProgress(fileInput.files[0]);
                 ffmpeg.FS('writeFile', 'input.mp4', userFileBuffer);
-                log("✅ 影片讀取完成！");
-
-                // 2. 抓取遠端素材 (使用絕對路徑)
-                log("正在從 GitHub 下載前導與結尾影片...");
+                
+                // 2. 抓取遠端素材
+                log("正在下載前導與結尾影片...");
+                const timeStamp = new Date().getTime(); 
                 try {
-                    // 強制加上時間戳記 (?t=...) 避免瀏覽器抓到舊的 404 快取
-                    const timeStamp = new Date().getTime(); 
                     ffmpeg.FS('writeFile', 'intro.mp4', await fetchFile(BASE_ASSETS_URL + 'intro.mp4?t=' + timeStamp));
                     ffmpeg.FS('writeFile', 'outro.mp4', await fetchFile(BASE_ASSETS_URL + 'outro.mp4?t=' + timeStamp));
-                } catch (e) {
-                    throw new Error("無法下載前導片/結尾片！請確認 GitHub 連結是否有效 (404錯誤)。");
+                } catch(e) {
+                    throw new Error("下載失敗！請確認 assets/intro.mp4 是否存在。");
                 }
 
-                // 3. 執行合成
-                log("開始 FFmpeg 運算 (請勿關閉視窗)...");
+                // 3. 執行合成 (關鍵修改：解析度改為 1080:1350)
+                log("🚀 開始 FFmpeg 運算 (直式合成)...");
+                
+                // 指令解析：
+                // scale=1080:1350:force_original_aspect_ratio=decrease -> 把影片縮放到能塞進直式框框內
+                // pad=1080:1350:(ow-iw)/2:(oh-ih)/2 -> 如果有留白，用黑邊填滿並置中
+                // setsar=1 -> 修正像素比例防止變形
+                const scaleFilter = "scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(ow-iw)/2:(oh-ih)/2,setsar=1";
+                
                 await ffmpeg.run(
                     '-i', 'intro.mp4',
                     '-i', 'input.mp4',
                     '-i', 'outro.mp4',
                     '-filter_complex', 
-                    '[0:v]scale=1920:1080[v0];[1:v]scale=1920:1080[v1];[2:v]scale=1920:1080[v2];[v0][v1][v2]concat=n=3:v=1:a=0[v]',
+                    `[0:v]${scaleFilter}[v0];[1:v]${scaleFilter}[v1];[2:v]${scaleFilter}[v2];[v0][v1][v2]concat=n=3:v=1:a=0[v]`,
                     '-map', '[v]',
+                    '-c:v', 'libx264',
+                    '-preset', 'ultrafast',
                     'output.mp4'
                 );
 
-                log("✅ 合成完成！正在打包...");
+                log("✅ Shorts 合成完成！");
                 convertBar.style.width = '100%';
                 convertBar.innerText = '完成！';
 
@@ -174,7 +186,7 @@
                 const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
                 const videoUrl = URL.createObjectURL(videoBlob);
                 
-                let saveName = filenameInput.value.trim() || 'merged_video.mp4';
+                let saveName = filenameInput.value.trim() || 'Shorts_Video.mp4';
                 if (!saveName.toLowerCase().endsWith('.mp4')) saveName += '.mp4';
 
                 const a = document.createElement('a');
@@ -183,18 +195,16 @@
                 document.body.appendChild(a);
                 a.click();
                 
-                log(`已啟動下載：${saveName}`);
                 document.body.removeChild(a);
 
             } catch (error) {
                 console.error(error);
                 log("❌ 發生錯誤：" + error.message);
-                alert("錯誤：" + error.message);
+                alert("合成失敗，請查看下方日誌。");
             }
 
-            // 重置按鈕
             startBtn.disabled = false;
-            startBtn.innerText = "🚀 開始合成影片";
+            startBtn.innerText = "🎬 開始合成 Shorts";
         });
     </script>
 </body>
