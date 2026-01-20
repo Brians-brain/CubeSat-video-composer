@@ -3,44 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SATORO Shorts 合成器 (V8 兩段式安全版)</title>
+    <title>SATORO Shorts 合成器 (V9 終極穩定版)</title>
     <script src="coi-serviceworker.js"></script>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #1a1a1a; color: #e0e0e0; }
-        h1 { text-align: center; color: #ffffff; }
-        .container { background: #2d2d2d; border-radius: 10px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; margin-top: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #121212; color: #e0e0e0; }
+        h1 { text-align: center; color: #ffffff; letter-spacing: 1px; }
+        .container { background: #1e1e1e; border-radius: 12px; padding: 30px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); text-align: center; margin-top: 20px; border: 1px solid #333; }
         
-        /* 檔案選擇區的美化 */
-        .file-upload-wrapper { border: 2px dashed #555; padding: 20px; border-radius: 10px; margin-top: 10px; transition: border 0.3s; }
-        .file-upload-wrapper:hover { border-color: #E1306C; }
-        input[type="file"] { display: none; } /* 隱藏醜醜的原生按鈕 */
-        .custom-file-upload { display: inline-block; padding: 10px 20px; cursor: pointer; background: #444; color: white; border-radius: 5px; border: 1px solid #666; }
-        #file-name-display { margin-top: 10px; color: #4caf50; font-weight: bold; min-height: 20px; }
+        .file-upload-wrapper { border: 2px dashed #444; padding: 25px; border-radius: 10px; margin-top: 10px; transition: all 0.3s; background: #252525; }
+        .file-upload-wrapper:hover { border-color: #E1306C; background: #2a2a2a; }
+        input[type="file"] { display: none; }
+        .custom-file-upload { display: inline-block; padding: 12px 25px; cursor: pointer; background: linear-gradient(45deg, #E1306C, #C13584); color: white; border-radius: 30px; border: none; font-weight: bold; box-shadow: 0 4px 10px rgba(225, 48, 108, 0.4); }
+        #file-name-display { margin-top: 15px; color: #888; font-size: 14px; min-height: 20px; word-break: break-all; }
 
-        input[type="text"] { padding: 10px; width: 70%; font-size: 16px; border: 1px solid #555; border-radius: 5px; margin-top: 5px; background: #404040; color: white; text-align: center; }
+        input[type="text"] { padding: 12px; width: 80%; font-size: 16px; border: 1px solid #444; border-radius: 8px; margin-top: 5px; background: #2d2d2d; color: white; text-align: center; }
         
-        button { margin-top: 25px; padding: 15px 30px; font-size: 20px; cursor: pointer; background-color: #E1306C; color: white; border: none; border-radius: 50px; transition: transform 0.2s; font-weight: bold; box-shadow: 0 4px 10px rgba(225, 48, 108, 0.3); }
-        button:disabled { background-color: #555; cursor: not-allowed; box-shadow: none; }
-        button:hover:not(:disabled) { transform: scale(1.05); background-color: #C13584; }
+        button { margin-top: 30px; padding: 15px 40px; font-size: 20px; cursor: pointer; background-color: #009688; color: white; border: none; border-radius: 50px; transition: transform 0.2s, background 0.2s; font-weight: bold; box-shadow: 0 4px 15px rgba(0, 150, 136, 0.4); }
+        button:disabled { background-color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
+        button:hover:not(:disabled) { transform: scale(1.05); background-color: #00796b; }
         
-        /* 進度條 */
-        .progress-wrapper { width: 100%; background-color: #404040; border-radius: 10px; margin-top: 20px; display: none; overflow: hidden; height: 25px; }
-        #progress-bar { width: 0%; height: 100%; background-color: #E1306C; text-align: center; line-height: 25px; color: white; font-size: 14px; transition: width 0.3s; font-weight: bold; }
+        .progress-wrapper { width: 100%; background-color: #333; border-radius: 10px; margin-top: 25px; display: none; overflow: hidden; height: 28px; }
+        #progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #E1306C, #F77737); text-align: center; line-height: 28px; color: white; font-size: 14px; transition: width 0.3s; font-weight: bold; }
         
-        #log { margin-top: 20px; font-family: monospace; color: #ccc; background: #000; padding: 15px; border-radius: 5px; text-align: left; max-height: 250px; overflow-y: auto; font-size: 13px; border: 1px solid #444; }
+        #log { margin-top: 25px; font-family: 'Consolas', monospace; color: #bbb; background: #000; padding: 15px; border-radius: 8px; text-align: left; max-height: 300px; overflow-y: auto; font-size: 13px; border: 1px solid #333; white-space: pre-wrap; }
     </style>
 </head>
 <body>
-    <h1>📱 SATORO Shorts 合成器 (V8)</h1>
-    <p style="text-align:center;">系統狀態：<span id="system-status">正在載入引擎...</span></p>
+    <h1>📱 SATORO Shorts 合成器 (V9)</h1>
+    <p style="text-align:center; font-size: 14px; color: #888;">系統狀態：<span id="system-status">正在載入引擎...</span></p>
 
     <div class="container">
-        <h3>1. 選擇您的衛星影片</h3>
+        <h3 style="margin-bottom: 5px;">1. 選擇您的衛星影片</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 15px;">(支援直式/橫式/480x640 等各種格式)</p>
+        
         <div class="file-upload-wrapper">
-            <label for="upload-video" class="custom-file-upload">📂 點擊選擇影片</label>
+            <label for="upload-video" class="custom-file-upload">📂 點擊選擇影片檔案</label>
             <input type="file" id="upload-video" accept="video/mp4,video/mov">
-            <div id="file-name-display">尚未選擇檔案</div>
+            <div id="file-name-display">尚未選擇檔案 (請點擊上方按鈕)</div>
         </div>
         
         <br>
@@ -63,7 +63,7 @@
         const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: true });
         
-        // ★★★ 請確認您的 GitHub Repo 網址正確 ★★★
+        // ★★★ 確認您的 GitHub URL ★★★
         const BASE_ASSETS_URL = 'https://brians-brain.github.io/CubeSat-video-composer/assets/';
 
         const statusSpan = document.getElementById('system-status');
@@ -74,14 +74,15 @@
         const fileInput = document.getElementById('upload-video');
         const fileNameDisplay = document.getElementById('file-name-display');
 
-        // 顯示檔案名稱，解決「不知道有沒有選到」的焦慮
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length > 0) {
                 fileNameDisplay.innerText = "✅ 已準備就緒: " + fileInput.files[0].name;
                 fileNameDisplay.style.color = "#4caf50";
+                fileNameDisplay.style.fontWeight = "bold";
             } else {
                 fileNameDisplay.innerText = "尚未選擇檔案";
-                fileNameDisplay.style.color = "#ccc";
+                fileNameDisplay.style.color = "#888";
+                fileNameDisplay.style.fontWeight = "normal";
             }
         });
 
@@ -108,9 +109,9 @@
                 statusSpan.innerHTML = "✅ 引擎準備就緒";
                 statusSpan.style.color = "#4caf50";
                 startBtn.disabled = false;
-                log("系統就緒，請選擇影片後按下開始。");
+                log("系統就緒，請選擇影片。");
             } catch (err) {
-                statusSpan.innerHTML = "❌ 載入失敗 (請檢查 GitHub Pages 環境)";
+                statusSpan.innerHTML = "❌ 載入失敗 (請確認 coi-serviceworker 是否運作)";
                 statusSpan.style.color = "#ff5252";
                 log("錯誤：" + err.message);
             }
@@ -125,83 +126,81 @@
             }
 
             startBtn.disabled = true;
-            startBtn.innerText = "⏳ 處理中 (兩階段模式)...";
+            startBtn.innerText = "⏳ 全速運算中...";
             progressContainer.style.display = 'block';
-            logDiv.innerHTML = "<div>--- 開始新任務 (V8) ---</div>";
+            logDiv.innerHTML = "<div>--- 開始任務 (V9 全面標準化) ---</div>";
 
             try {
-                // 1. 讀取本機檔案
-                log(`Step 0: 讀取本機影片...`);
-                const userFileBuffer = await fetchFile(fileInput.files[0]);
-                ffmpeg.FS('writeFile', 'input.mp4', userFileBuffer);
+                // 1. 讀取與下載
+                log(`[1/3] 正在讀取影片與素材...`);
+                progressBar.innerText = "讀取素材中...";
                 
-                // 2. 下載素材
+                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(fileInput.files[0]));
+                
                 const timeStamp = new Date().getTime(); 
                 try {
                     ffmpeg.FS('writeFile', 'intro.mp4', await fetchFile(BASE_ASSETS_URL + 'intro.mp4?t=' + timeStamp));
                     ffmpeg.FS('writeFile', 'outro.mp4', await fetchFile(BASE_ASSETS_URL + 'outro.mp4?t=' + timeStamp));
                 } catch(e) {
-                    throw new Error("無法下載素材，請確認網路或 GitHub 檔案。");
+                    throw new Error("素材下載失敗，請檢查 assets/intro.mp4 是否存在。");
                 }
 
-                // ★★★ V8 核心：第一階段 - 淨化使用者影片 ★★★
-                log("Step 1/2: 正在標準化您的衛星影片 (縮放+補黑邊)...");
-                progressBar.innerText = "Step 1: 格式化中...";
+                // 2. 執行 FFmpeg (使用最強力的濾鏡鏈)
+                log(`[2/3] 開始合成 (這可能需要 30-60 秒)...`);
+                progressBar.innerText = "影像合成中...";
                 
-                // 先把使用者的影片單獨處理成完美的 1080x1350
-                // 這樣可以避免 concat 失敗
-                await ffmpeg.run(
-                    '-i', 'input.mp4',
-                    '-vf', 'scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(1080-iw)/2:(1350-ih)/2,setsar=1,fps=30,format=yuv420p',
-                    '-c:v', 'libx264',
-                    '-preset', 'ultrafast',
-                    'middle.mp4' // 輸出成暫存檔
-                );
-                log("✅ 第一階段完成，衛星影片已標準化。");
-
-                // ★★★ V8 核心：第二階段 - 拼接 ★★★
-                log("Step 2/2: 正在合併前導與結尾...");
-                progressBar.innerText = "Step 2: 合併中...";
-
-                // 這次合併非常安全，因為 input 已經是標準格式了
+                // V9 核心邏輯：
+                // 不管是 [0:v]前導, [1:v]衛星, [2:v]結尾
+                // 全部都套用同一套 filter：縮放至 1080x1350 + 補黑邊 + 強制 SAR=1 + 強制 30fps + 強制 YUV420P
+                // 這樣可以保證 concat 絕對不會失敗
+                const normalizeFilter = "scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p";
+                
                 await ffmpeg.run(
                     '-i', 'intro.mp4',
-                    '-i', 'middle.mp4',
+                    '-i', 'input.mp4',
                     '-i', 'outro.mp4',
-                    '-filter_complex', '[0:v][1:v][2:v]concat=n=3:v=1:a=0[v]',
+                    '-filter_complex', 
+                    `[0:v]${normalizeFilter}[v0];[1:v]${normalizeFilter}[v1];[2:v]${normalizeFilter}[v2];[v0][v1][v2]concat=n=3:v=1:a=0[v]`,
                     '-map', '[v]',
-                    '-c:v', 'libx264', // 為了保險起見再次編碼，確保相容性
-                    '-preset', 'ultrafast',
+                    '-c:v', 'libx264',
+                    '-preset', 'ultrafast', // 速度優先
                     'output.mp4'
                 );
 
-                log("✅ 全部完成！正在打包下載...");
+                log(`[3/3] 合成完成！檢查檔案...`);
+                progressBar.innerText = "打包下載中...";
+
+                // 3. 檔案檢查與下載
+                // 列出目錄下的檔案，方便除錯
+                const files = ffmpeg.FS('readdir', '/');
+                log(`磁碟狀態: ${files.join(', ')}`);
+
+                if (!files.includes('output.mp4')) {
+                    throw new Error("output.mp4 未生成！請查看上方日誌是否有紅字錯誤。");
+                }
+
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
+                const videoUrl = URL.createObjectURL(videoBlob);
+                
+                let saveName = filenameInput.value.trim() || 'SATORO_Shorts.mp4';
+                if (!saveName.toLowerCase().endsWith('.mp4')) saveName += '.mp4';
+
+                const a = document.createElement('a');
+                a.href = videoUrl;
+                a.download = saveName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                log("✅ 成功！檔案應已開始下載。");
                 progressBar.style.width = '100%';
                 progressBar.innerText = '完成！';
-
-                // 4. 下載
-                try {
-                    const data = ffmpeg.FS('readFile', 'output.mp4');
-                    const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
-                    const videoUrl = URL.createObjectURL(videoBlob);
-                    
-                    let saveName = filenameInput.value.trim() || 'SATORO_Shorts.mp4';
-                    if (!saveName.toLowerCase().endsWith('.mp4')) saveName += '.mp4';
-
-                    const a = document.createElement('a');
-                    a.href = videoUrl;
-                    a.download = saveName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                } catch (readErr) {
-                    throw new Error("無法讀取檔案。請確認 Step 2 是否有紅色錯誤訊息。");
-                }
 
             } catch (error) {
                 console.error(error);
                 log("❌ 發生錯誤：" + error.message);
-                alert("合成失敗，請查看下方日誌。");
+                alert("合成失敗！請截圖下方的黑色日誌區給我。");
             }
 
             startBtn.disabled = false;
