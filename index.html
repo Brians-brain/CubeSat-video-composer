@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>衛星影片合成工具</title>
+    <script src="coi-serviceworker.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .container { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; }
+        button:disabled { background-color: #ccc; }
+        #status { margin-top: 15px; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>🛰️ 衛星軌道影片合成器</h1>
+    <p>狀態確認：<span id="system-status">正在載入引擎...</span></p>
+
+    <div class="container">
+        <h3>1. 上傳軌道影片</h3>
+        <input type="file" id="upload-video" accept="video/mp4,video/mov">
+        
+        <br><br>
+        
+        <h3>2. 設定檔名</h3>
+        <input type="text" id="filename" value="merged_video.mp4" placeholder="輸入檔名.mp4">
+        
+        <br><br>
+        
+        <button id="start-btn" disabled>開始合成影片</button>
+        
+        <p id="log">等待操作...</p>
+    </div>
+
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+        const statusSpan = document.getElementById('system-status');
+        const startBtn = document.getElementById('start-btn');
+
+        // 初始化 FFmpeg
+        (async () => {
+            try {
+                await ffmpeg.load();
+                statusSpan.innerText = "✅ 引擎準備就緒 (System Ready)";
+                statusSpan.style.color = "green";
+                startBtn.disabled = false;
+            } catch (err) {
+                statusSpan.innerText = "❌ 載入失敗 (請確認是否使用 GitHub Pages 或 Localhost)";
+                console.error(err);
+            }
+        })();
+
+        // 這裡我們暫時只寫一個測試按鈕，下一階段再寫合成邏輯
+        startBtn.addEventListener('click', () => {
+            alert("按鈕功能正常！我們即將進入合成階段。");
+        });
+    </script>
+</body>
+</html>
