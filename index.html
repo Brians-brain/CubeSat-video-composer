@@ -3,59 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>衛星影片合成工具</title>
+    <title>衛星軌道影片合成器</title>
     <script src="coi-serviceworker.js"></script>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-        .container { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-top: 20px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; }
-        button:disabled { background-color: #ccc; }
-        #status { margin-top: 15px; color: #555; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #f9f9f9; }
+        h1 { text-align: center; color: #333; }
+        .container { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; margin-top: 20px; }
+        input[type="text"] { padding: 10px; width: 60%; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; margin-top: 5px; }
+        input[type="file"] { margin-top: 10px; }
+        button { margin-top: 20px; padding: 12px 24px; font-size: 18px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; transition: background 0.3s; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        button:hover:not(:disabled) { background-color: #0056b3; }
+        #log { margin-top: 20px; font-family: monospace; color: #555; background: #eee; padding: 10px; border-radius: 5px; text-align: left; max-height: 200px; overflow-y: auto; font-size: 12px; }
+        .status-ok { color: green; font-weight: bold; }
+        .status-err { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
     <h1>🛰️ 衛星軌道影片合成器</h1>
-    <p>狀態確認：<span id="system-status">正在載入引擎...</span></p>
+    <p style="text-align:center;">系統狀態：<span id="system-status">正在載入引擎...</span></p>
 
     <div class="container">
-        <h3>1. 上傳軌道影片</h3>
+        <h3>1. 上傳您的衛星影片</h3>
         <input type="file" id="upload-video" accept="video/mp4,video/mov">
         
         <br><br>
         
-        <h3>2. 設定檔名</h3>
-        <input type="text" id="filename" value="merged_video.mp4" placeholder="輸入檔名.mp4">
+        <h3>2. 設定輸出檔名</h3>
+        <input type="text" id="filename" value="merged_video.mp4" placeholder="例如：Mission_Alpha.mp4">
         
         <br><br>
         
-        <button id="start-btn" disabled>開始合成影片</button>
+        <button id="start-btn" disabled>🚀 開始合成影片</button>
         
-        <p id="log">等待操作...</p>
+        <div id="log">等待操作...</div>
     </div>
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: true });
+        
         const statusSpan = document.getElementById('system-status');
         const startBtn = document.getElementById('start-btn');
+        const logDiv = document.getElementById('log');
+
+        // 顯示日誌的輔助函式
+        function log(message) {
+            logDiv.innerHTML += `<div>> ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
 
         // 初始化 FFmpeg
         (async () => {
             try {
                 await ffmpeg.load();
-                statusSpan.innerText = "✅ 引擎準備就緒 (System Ready)";
-                statusSpan.style.color = "green";
+                statusSpan.innerHTML = "✅ 引擎準備就緒 (System Ready)";
+                statusSpan.className = "status-ok";
                 startBtn.disabled = false;
+                log("系統就緒，請上傳影片。");
             } catch (err) {
-                statusSpan.innerText = "❌ 載入失敗 (請確認是否使用 GitHub Pages 或 Localhost)";
-                console.error(err);
+                statusSpan.innerHTML = "❌ 載入失敗 (請確認是否在 GitHub Pages 執行)";
+                statusSpan.className = "status-err";
+                log("錯誤：" + err.message);
             }
         })();
 
-        // 這裡我們暫時只寫一個測試按鈕，下一階段再寫合成邏輯
-        startBtn.addEventListener('click', () => {
-            alert("按鈕功能正常！我們即將進入合成階段。");
+        startBtn.addEventListener('click', async () => {
+            const fileInput = document.getElementById('upload-video');
+            const filenameInput = document.getElementById('filename');
+            
+            if (fileInput.files.length === 0) {
+                alert("請先選擇一個影片檔案！");
+                return;
+            }
+
+            // 1. 鎖定按鈕避免重複點擊
+            startBtn.disabled = true;
+            startBtn.innerText = "⏳ 處理中，請稍候...";
+            log("--- 開始處理任務 ---");
+
+            try {
+                // 2. 載入檔案到虛擬記憶體
+                log("正在讀取前導與結尾影片...");
+                // 從 assets 資料夾讀取 intro 和 outro
+                ffmpeg.FS('writeFile', 'intro.mp4', await fetchFile('assets/intro.mp4'));
+                ffmpeg.FS('writeFile', 'outro.mp4', await fetchFile('assets/outro.mp4'));
+                
+                log("正在讀取您上傳的影片...");
+                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(fileInput.files[0]));
+
+                // 3. 執行合成指令
+                log("正在執行影片合併與轉檔 (這可能需要幾分鐘)...");
+                
+                // 說明：這裡使用 filter_complex 將三個影片強制縮放為 1920x1080 避免解析度不同導致錯誤
+                // [0:v] 是 intro, [1:v] 是 input, [2:v] 是 outro
+                await ffmpeg.run(
+                    '-i', 'intro.mp4',
+                    '-i', 'input.mp4',
+                    '-i', 'outro.mp4',
+                    '-filter_complex', 
+                    '[0:v]scale=1920:1080[v0];[1:v]scale=1920:1080[v1];[2:v]scale=1920:1080[v2];[v0][0:a][v1][1:a][v2][2:a]concat=n=3:v=1:a=1[v][a]',
+                    '-map', '[v]', '-map', '[a]',
+                    'output.mp4'
+                );
+
+                log("✅ 合成完成！正在準備下載...");
+
+                // 4. 讀取結果並觸發下載
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
+                const videoUrl = URL.createObjectURL(videoBlob);
+                
+                // 處理檔名 (如果使用者沒打 .mp4 自動補上)
+                let saveName = filenameInput.value.trim() || 'merged_video.mp4';
+                if (!saveName.toLowerCase().endsWith('.mp4')) {
+                    saveName += '.mp4';
+                }
+
+                // 建立下載連結並自動點擊
+                const a = document.createElement('a');
+                a.href = videoUrl;
+                a.download = saveName;
+                document.body.appendChild(a);
+                a.click();
+                
+                log(`已下載檔案：${saveName}`);
+                
+                // 清理
+                document.body.removeChild(a);
+
+            } catch (error) {
+                console.error(error);
+                log("❌發生錯誤：" + error.message);
+                alert("合成失敗，請檢查您的影片格式，或開啟 F12 查看詳細錯誤。");
+            }
+
+            // 5. 恢復按鈕
+            startBtn.disabled = false;
+            startBtn.innerText = "🚀 開始合成影片";
         });
     </script>
 </body>
